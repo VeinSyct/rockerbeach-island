@@ -1,4 +1,4 @@
-<img width="2160" height="1200" alt="rockerbeach-island-05" src="https://github.com/user-attachments/assets/ceff4221-084e-4867-bba0-c982b2e69d8d" />
+<img width="1917" height="1023" alt="image" src="https://github.com/user-attachments/assets/0849fccc-3bca-4031-b145-a93a1937b618" />
 
 # 🌴 Virtual Experience Engine
 ## **RockerBeach Island**
@@ -8,6 +8,8 @@ A real-time open-world 3D simulation engine built with **Three.js**, featuring d
 ---
 
 ## 🌐 Concept Origin
+
+<img width="2160" height="1200" alt="rockerbeach-island-05" src="https://github.com/user-attachments/assets/ceff4221-084e-4867-bba0-c982b2e69d8d" />
 
 The name **RockerBeach Island** reflects the project's focus on a large tropical island environment featuring coastal regions, beaches, roads, towns, and interconnected gameplay systems.
 
