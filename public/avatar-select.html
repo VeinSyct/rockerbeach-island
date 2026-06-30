@@ -1,0 +1,525 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script type="module" src="assets/js/model-viewer.min.js"></script>
+<style>
+	* {
+        user-select: none;
+    }
+	body {
+        margin: 0px;
+        padding: 0px;
+        background: transparent;
+		--scale: 360px;
+		color: white;
+		overflow-y: scroll;
+        -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+                user-select: none;
+    }
+    img {
+		-webkit-user-drag: none;
+		-khtml-user-drag: none;
+		-moz-user-drag: none;
+		-o-user-drag: none
+	}
+	input,
+	textarea,
+	button,
+	select,
+	span,
+	div,
+	a {
+		-webkit-tap-highlight-color: #fff0
+	}
+	::-webkit-scrollbar {
+		width:3px;
+		height:3px;
+		opacity:.13;
+	}
+	::-webkit-scrollbar-track {
+		border-radius: 3px;
+		-webkit-box-shadow: inset 0 0 1px rgb(0 0 0 / .1)
+	}
+	::-webkit-scrollbar-thumb {
+		border-radius: 3px;
+		background-color: var(--main-fg);
+		outline: 1px solid slategrey
+	}
+	.fadeOut {
+		opacity: 0;
+		transition: visibility 0s 1s, opacity 1s ease-in-out;
+	}
+	.card-container {
+		margin: 0;
+		padding: 36vh 0 14vh;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: center;
+		overflow: hidden;
+	}
+	.card {
+		--fclr: #fefefe;
+		height: 50vh;
+		width: 30%;
+		&::before {
+			content: "";
+			display: block;
+			position: absolute;
+			left: 0;
+			right: 0;
+			top: 0;
+			width: 100%;
+			height: 107%;
+			border-style: dashed;
+			border-width: 2px;
+			border-color: white;
+			border-radius: 24px;
+			box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+			transition: all 0.2s ease-in-out;
+		}
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		justify-content: end;
+		align-items: center;
+		cursor: pointer;
+		margin: auto 16px;
+		&:hover {
+			&::before {
+				height: 112%;
+				box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
+			}
+		}
+		&:active {
+			&::before {
+				height: 112%;
+				box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+			}
+		}
+		span {
+			position: absolute;
+			display: none;
+			justify-content: center;
+			align-items: center;
+			border-radius: 50%;
+			outline: 2.4px dashed white; 
+			background: radial-gradient(#000c, #3e3f46aa); box-shadow: rgba(50, 50, 93, .25) 0px 2px 5px -1px, rgba(0, 0, 0, .3) 0px 1px 3px -1px;
+			z-index: 1;			
+		}
+		span:hover {
+			transform: scale(1.07);
+		}
+		span:active {
+			transform: scale(.96);
+		}
+		span h2 {
+			margin: -2.5px -.5px 0 0;
+		}
+		span img {
+			width: 100%;
+			object-fit: cover;
+		}
+		.content {
+			position: relative;
+			z-index: 1;
+			bottom: 0;
+			top: unset;
+			height: fit-content;
+			padding: 12px 24px 0 24px;
+			h2,
+			p {
+				margin: 0;
+				padding: 0;
+				line-height: 124%;
+				margin-bottom: 8px;
+				font-weight: 700;
+			}
+			p {
+				font-weight: 500;
+				margin-bottom: 16px;
+			}
+			&::before {
+				content: "";
+				display: block;
+				position: absolute;
+				z-index: -1;
+				bottom: -2px;
+				left: 0;
+				width: 100%;
+				height: 20px;
+			}
+		}
+		.glass {
+			margin: 0 3px -4px;
+			pointer-events: none;
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			width: calc(100% - 6px);
+			height: 80%;
+			background: linear-gradient(transparent);
+			overflow: hidden;
+		}
+		.overflow {
+			pointer-events: none;
+			position: absolute;
+			width: 200%;
+			height: 200%;
+			overflow: hidden;
+			display: flex;
+			justify-content: end;
+			align-items: end;
+			clip-path: polygon(25% 0, 75% 0, 75% 100%, 25% 100%);
+		}
+		.model {
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			model-viewer {
+				position: absolute;
+				width: 500px;
+				height: calc((5 / 3) * var(--scale));
+				--progress-bar-color: none;
+				--progress-bar-height: 0px;
+				opacity: 0;
+				transition: filter 0.4s ease-in-out;
+				&.loaded {
+					animation: onLoad 1s ease-in forwards;
+				}
+			}
+		}
+	}
+	@media only screen and (max-width:1024px) and (orientation:landscape) {
+	}
+	@media only screen and (max-width:480px) {
+		body {
+			--scale: 240px;
+		}
+		.card-container {
+			padding: 22vh 0 9vh;
+			flex-direction: column;
+			gap: 120px;
+		}
+		.card {
+			width: 80%;
+			height: 30vh;
+		}
+	}
+	@media only screen and (min-width:481px) and (max-width:768px) {
+		body {
+			--scale: 180px;
+		}
+		.card {
+			width: 28%;
+		}
+	}
+	@keyframes onLoad {
+		to {
+			opacity: 1;
+		}
+	}
+	.gradient-blur {
+		position: absolute;
+		z-index: 1;
+		height: 100%;
+		inset: auto 0 0 0;
+		pointer-events: none;
+	}
+	.gradient-blur > div,
+	.gradient-blur::before,
+	.gradient-blur::after {
+		position: absolute;
+		inset: 0;
+		--p1: 0%;
+		--p2: 12.5%;
+		--p3: 25%;
+		--p4: 37.5%;
+		--p5: 50%;
+		--p6: 62.5%;
+		--p7: 75%;
+		--p8: 87.5%;
+		--p9: 100%;
+		--bclr0: #0000;
+		--bclr1: #000;
+	}
+	.gradient-blur::before {
+		content: "";
+		backdrop-filter: blur(0.5px);
+		mask: linear-gradient(
+			to bottom,
+			var(--bclr0) var(--p1),
+			var(--bclr1) var(--p2),
+			var(--bclr1) var(--p3),
+			var(--bclr0) var(--p4)
+		);
+	}
+	.gradient-blur > div:nth-of-type(1) {
+		backdrop-filter: blur(1px);
+		mask: linear-gradient(
+			to bottom,
+			var(--bclr0) var(--p2),
+			var(--bclr1) var(--p3),
+			var(--bclr1) var(--p4),
+			var(--bclr0) var(--p5)
+		);
+	}
+	.gradient-blur > div:nth-of-type(2) {
+		backdrop-filter: blur(2px);
+		mask: linear-gradient(
+			to bottom,
+			var(--bclr0) var(--p3),
+			var(--bclr1) var(--p4),
+			var(--bclr1) var(--p5),
+			var(--bclr0) var(--p6)
+		);
+	}
+	.gradient-blur > div:nth-of-type(3) {
+		backdrop-filter: blur(4px);
+		mask: linear-gradient(
+			to bottom,
+			var(--bclr0) var(--p4),
+			var(--bclr1) var(--p5),
+			var(--bclr1) var(--p6),
+			var(--bclr0) var(--p7)
+		);
+	}
+	.gradient-blur > div:nth-of-type(4) {
+		backdrop-filter: blur(8px);
+		mask: linear-gradient(
+			to bottom,
+			var(--bclr0) var(--p5),
+			var(--bclr1) var(--p6),
+			var(--bclr1) var(--p7),
+			var(--bclr0) var(--p8)
+		);
+	}
+	.gradient-blur > div:nth-of-type(5) {
+		backdrop-filter: blur(16px);
+		mask: linear-gradient(
+			to bottom,
+			var(--bclr0) var(--p6),
+			var(--bclr1) var(--p7),
+			var(--bclr1) var(--p8),
+			var(--bclr0) var(--p9)
+		);
+	}
+	.gradient-blur > div:nth-of-type(6) {
+		backdrop-filter: blur(32px);
+		mask: linear-gradient(
+			to bottom,
+			var(--bclr0) var(--p7),
+			var(--bclr1) var(--p8),
+			var(--bclr1) var(--p9)
+		);
+	}
+	.gradient-blur::after {
+		content: "";
+		backdrop-filter: blur(64px);
+		mask: linear-gradient(
+			to bottom,
+			var(--bclr0) var(--p8),
+			var(--bclr1) var(--p9)
+		);
+	}
+</style>
+<div class="card-container">
+	<div class="card" onclick="select({ e: this, sel: 0, hide: !0 })">
+		<div class="overflow">
+			<div class="model">
+				<model-viewer camera-orbit="0deg 90deg 164m" camera-target="0m 140m 10m" src="assets/models/blue-shirt-impostor.glb" shadow-intensity="0.4"></model-viewer>
+			</div>
+		</div>
+		<div class="glass">
+			<div class="gradient-blur">
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+			</div>
+		</div>
+		<div class="content">
+			<h1>𐀪</h1>
+			<p>Male stylized avatar - select the model or close to reselect.</p>
+		</div>
+		<span onclick="new Audio('assets/models/sounds/activity/bounceclick.ogg').play(); select({ e: this, sel: 0, hide: !1 })" style="top: 12px; left: 7px; width: 30px; height: 30px">
+			<h2>✖</h2>
+		</span>
+		<span onclick="new Audio('assets/models/sounds/activity/approve.ogg').play(); setTimeout(()=> playNow({ m: 'blue shirt', p: !0 }), 720)" style="top: 36%; width: 64px; height: 64px">
+			<img src="assets/images/video_play-icon.gif"/>
+		</span>
+	</div>
+	<div class="card" onclick="select({ e: this, sel: 1, hide: !0 })">
+		<div class="overflow">
+			<div class="model">
+				<model-viewer camera-orbit="0deg 90deg 164m" camera-target="0m 140m 10m" src="assets/models/avatar-modular-female-impostor.glb" shadow-intensity="0.4"></model-viewer>
+			</div>
+		</div>
+		<div class="glass">
+			<div class="gradient-blur">
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+			</div>
+		</div>
+		<div class="content">
+			<h1>♀</h1>
+			<p>Female avatar - customize the model or close to reselect gender.</p>
+		</div>
+		<span onclick="new Audio('assets/models/sounds/activity/approve.ogg').play(); setTimeout(()=> playNow({ m: 'avatar-modular-female', p: !0 }), 720)" style="top: 9px; right: 9px; width: 42px; height: 42px">
+			<img src="assets/images/video_play-icon.gif"/>
+		</span>
+		<span onclick="new Audio('assets/models/sounds/activity/bounceclick.ogg').play(); select({ e: this, sel: 1, hide: !1 })" style="top: 12px; left: 7px; width: 30px; height: 30px">
+			<h2>✖</h2>
+		</span>
+		<span onclick="new Audio('assets/models/sounds/activity/shutter.ogg').play(); setTimeout(()=> playNow({ m: 'avatar-modular-female' }), 720)" style="top: 36%; width: 64px; height: 64px">
+			<img src="assets/images/clothing.webp"/>
+		</span>
+	</div>
+	<div class="card" onclick="select({ e: this, sel: 2, hide: !0 })">
+		<div class="overflow">
+			<div class="model">
+				<model-viewer camera-orbit="0deg 90deg 164m" camera-target="0m 140m 10m" src="assets/models/avatar-modular-male-impostor.glb" shadow-intensity="0.4"></model-viewer>
+			</div>
+		</div>
+		<div class="glass">
+			<div class="gradient-blur">
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+				<div></div>
+			</div>
+		</div>
+		<div class="content">
+			<h1>♂</h1>
+			<p>Male avatar - customize the model or close to reselect gender.</p>
+		</div>
+		<span onclick="new Audio('assets/models/sounds/activity/approve.ogg').play(); setTimeout(()=> playNow({ m: 'avatar-modular-male', p: !0 }), 720)" style="top: 9px; right: 9px; width: 42px; height: 42px">
+			<img src="assets/images/video_play-icon.gif"/>
+		</span>
+		<span onclick="new Audio('assets/models/sounds/activity/bounceclick.ogg').play(); select({ e: this, sel: 2, hide: !1 })" style="top: 12px; left: 7px; width: 30px; height: 30px">
+			<h2>✖</h2>
+		</span>
+		<span onclick=" new Audio('assets/models/sounds/activity/shutter.ogg').play(); setTimeout(()=> playNow({ m: 'avatar-modular-male' }), 720)" style="top: 36%; width: 64px; height: 64px">
+			<img src="assets/images/clothing.webp"/>
+		</span>
+	</div>
+	<span onclick="new Audio('assets/models/sounds/activity/approve.ogg').play(); setTimeout(()=> playNow({ m: `avatar-modular-${Math.floor(Math.random() * 2) ? 'fe' : ''}male`, p: !0 }), 720)" style="position: fixed; bottom: 9px; right: 9px; width: 76px; height: 76px; border-radius: 50%; outline: 2.4px dashed white; background: radial-gradient(#000c, #3e3f46aa); box-shadow: rgba(50, 50, 93, .25) 0px 2px 5px -1px, rgba(0, 0, 0, .3) 0px 1px 3px -1px; z-index: 1">
+		<img src="assets/images/video_play-icon.gif" style="width: 76px; height: 76px; cursor: pointer"/>
+	</span>
+</div>
+<script>
+	let select = (d) => {
+		if (_uz.now + 120 < performance.now()) {
+			_uz.now = performance.now();
+			d.e = d.hide ? d.e : d.e.parentElement;
+			d.sp = d.e.getElementsByTagName("span");
+			for (let i = 0; i < d.sp.length; i++)
+				d.sp[i].style.display = d.hide ? "flex" : "none";
+			d.e = document.getElementsByClassName("card");
+			for (let i in d.e)
+				if (d.e[i].classList) {
+					d.e[i].classList[d.sel != i && d.hide ? "add" : "remove"]("fadeOut");
+					setTimeout(()=> d.e[i].style.display = d.sel != i && d.hide ? "none" : "flex", 480);
+				}
+		}
+	},
+	urlCharDecode = (url) => {
+		return url
+			.toString()
+			.replace(/%2C/g, ",")
+			.replace(/%CF%85/g, "υ")
+			.replace(/%CF%82/g, "ς")
+			.replace(/%20/g, " ")
+			.replace(/%26/g, "&")
+			.replace(/%27/g, "'")
+			.replace(/%22/g, '"')
+			.replace(/%3C/g, "<")
+			.replace(/%3E/g, ">")
+			.replace(/%28/g, "(")
+			.replace(/%29/g, ")")
+			.replace(/%5B/g, "[")
+			.replace(/%5D/g, "]")
+			.replace(/%7B/g, "{")
+			.replace(/%7D/g, "}");
+	},
+	playNow = (d) => {
+		d.e = document.getElementsByClassName("model");
+		for (let i in d.e)
+			if (d.e[i].style)
+				d.e[i].style.display = "none";
+		_uz.hash = _uz.prog[_uz.hash] ? _uz.hash : 30;
+		if (_uz.prog[_uz.hash]) {
+			if (localStorage.avatar)
+				d.avatar = JSON.parse(localStorage.avatar);
+			if (d.avatar) {
+				if (!d.avatar[_uz.hash])
+					d.avatar = Object.assign(d.avatar, JSON.parse(`{"${_uz.hash}": {} }`));
+			} else d.avatar = JSON.parse(`{"${_uz.hash}": {} }`);
+			d.avatar[_uz.hash].m = { n: d.m };
+			d.avatar.index = _uz.hash;
+			localStorage.avatar = JSON.stringify(d.avatar);
+			location.replace(d.p ? _uz.prog[_uz.hash] : `avatar-studio.html?${_uz.hash}`);
+		}
+	},
+	_uz = {
+		now: performance.now(),
+		hash: urlCharDecode(location.href).split("?").slice(-1).toString(),
+		prog: {
+			1: 'Rockerbeach-Island.html',
+			2: 'construct.html',
+		}
+	};	
+</script>
+<script>
+	(() => {
+		const modelViewers = document.querySelectorAll("model-viewer");
+		const cards = document.querySelectorAll(".card");
+		const defaultOrbit = "0deg 90deg 164m";
+		const applyOrbit = (modelViewer, orbit, vert) => {
+			modelViewer.setAttribute("camera-orbit", orbit);
+			modelViewer.setAttribute("interpolation-decay", "200");
+			modelViewer.setAttribute("camera-target", `0m ${vert}m 10m`);
+		};
+		cards.forEach((card, index) => {
+			const modelViewer = modelViewers[index];
+			if (modelViewer) {
+				const calcOrbit = (xPos, cardRect) => {
+					const normalizedX = (xPos - cardRect.left) / cardRect.width;
+					const angle = normalizedX * 90 - 45;
+					return `${-angle}deg 90deg 164m`;
+				};
+				card.addEventListener("mousemove", (event) => {
+					const cardRect = card.getBoundingClientRect();
+					const orbit = calcOrbit(event.clientX, cardRect);
+					applyOrbit(modelViewer, orbit, 120);
+				});
+				card.addEventListener("mouseleave", () => {
+					applyOrbit(modelViewer, defaultOrbit, 140);
+				});
+				modelViewer.addEventListener("load", () => {
+					modelViewer.classList.add("loaded");
+				});
+			} else {}
+		});
+	})();
+</script>
+<script>
+    window.addEventListener("message", (e) => {
+        if (e.data.action && e.data.action.match(/(issue-credit|spend-credit|issue-ready)/)) {
+            if (e.origin != location.origin)
+                iframe.contentWindow.postMessage(e.data, iframe.src);
+            else window.parent.postMessage(e.data, "*");
+        }
+    });
+</script>

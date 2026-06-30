@@ -1,0 +1,1452 @@
+<script>
+    window.parent.postMessage({ isLive: !0 }, "*");
+    let prog = 2, hostName = ".",
+    urlCharDecode = (url) => {
+        return url
+            .toString()
+            .replace(/%2C/g, ",")
+            .replace(/%CF%85/g, "υ")
+            .replace(/%CF%82/g, "ς")
+            .replace(/%20/g, " ")
+            .replace(/%26/g, "&")
+            .replace(/%27/g, "'")
+            .replace(/%22/g, '"')
+            .replace(/%3C/g, "<")
+            .replace(/%3E/g, ">")
+            .replace(/%28/g, "(")
+            .replace(/%29/g, ")")
+            .replace(/%5B/g, "[")
+            .replace(/%5D/g, "]")
+            .replace(/%7B/g, "{")
+            .replace(/%7D/g, "}");
+    }, tag = urlCharDecode(location.href).split("#").slice(-1).toString();
+    e = document.createElement("div");
+    e.style.pointerEvents = "none";
+    e.style.willChange = "transform";
+    e.innerHTML = `<iframe src="${hostName}/#load=${prog}${tag && tag.includes("loc=") ? `&&${tag}` : ""}" style="position: absolute; width: 100vw; height: 100vh; left: 0; top: 0" frameBorder="0"></iframe>`;
+    iframe = e.firstChild;
+    e = undefined;
+</script>
+<style>
+    :root {
+        --icon-opacity: .64;
+    }
+    * {
+        box-sizing: border-box;
+        user-select: none;
+    }
+    html, body {
+        margin: 0px;
+        padding: 0px;
+        background: transparent;
+        overflow: hidden;
+        -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+                user-select: none;
+    }
+    img{
+        -webkit-user-drag: none;
+        -khtml-user-drag: none;
+        -moz-user-drag: none;
+        -o-user-drag: none;
+        user-drag: none;
+    }
+    input, textarea, button, select, span, div, img, a {
+        -webkit-tap-highlight-color: transparent;
+    }
+    .blink {
+        animation: blinker 1s linear infinite;
+    }
+    @keyframes blinker {
+        50% {
+            opacity: 0;
+        }
+    }
+    .dynamicjoystickcont {
+        position: absolute;
+        display: flex;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        cursor: pointer;
+    }
+    .dynamicjoystickcont > div:nth-child(1) {
+        position: absolute;
+        width: 50%;
+        height: 100%;
+        left: 0;
+        opacity: .24;
+    }
+    .dynamicjoystickcont > div:nth-child(2) {
+        position: absolute;
+        width: 50%;
+        height: 100%;
+        right: 0;
+        opacity: .24;
+    }
+    .button-cont {
+        position: absolute;
+        border-radius: 50%;
+        outline: 2.4px dashed white;
+        background: radial-gradient(#000c, #3e3f46aa);
+        box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    }
+    .button-icon {
+        background: #fff9;
+        opacity: var(--icon-opacity);
+        cursor: pointer;
+    }
+    .button-icon:hover {
+        background: #fffb;
+    }
+    .button-icon:active {
+        background: #ffff;
+    }
+    .button-icon img {
+        height: 54px;
+        opacity: var(--icon-opacity);
+    }
+    .button-action {
+        -webkit-transform: scale(1);
+        transform: scale(1);
+        transition: transform 0.5s;
+    }
+    .button-action:hover {
+        -webkit-transform: scale(1.07);
+        transform: scale(1.07);
+    }
+    .button-action:active {
+        -webkit-transform: scale(.96);
+        transform: scale(.96);
+    }
+    .slidedownup {
+        animation-name: slidedownup;
+        animation-duration: 1s;
+        animation-timing-function: ease-in-out;
+    }
+    @keyframes slidedownup {
+        0% {
+            width: 54px;
+            height: 54px;
+            opacity: var(--icon-opacity);
+        }
+        50% {
+            width: 6px;
+            height: 6px;
+            opacity: 0;
+        }
+        100% {
+            width: 54px;
+            height: 54px;
+            opacity: var(--icon-opacity);
+        }
+    }
+</style>
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+<link rel="stylesheet" href="assets/css/crt-screen.css">
+<link rel="shortcut icon" type="image/x-icon" href="assets/images/360 logo.webp">
+<div style="display: flex; width: 100vw; height: 100vh">
+    <div class="tilt-shift" style="position: absolute" id="three-iframe-cont"></div>
+    <div style="display: none;" id="in-canvas-motion-texture"></div>
+    <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; pointer-events: none;" id="wrist-placement"></div>
+    <canvas style="position: absolute; pointer-events: none;" id="lineCvs"></canvas>
+    <div id="dynamic-joystick"></div>
+    <div style="position: absolute; display: flex; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none;" id="indicators"></div>
+    <span id="crt-screen"></span>
+</div>
+<!-- T R A C K I N G -->
+<!-- https://cdn.jsdelivr.net/npm/@mediapipe/pose/ -->
+<!-- <script src="assets/js/tensorflow/tf-core.min.js"></script>
+<script src="assets/js/tensorflow/pose/tfjs-converter.js"></script>
+<script src="assets/js/tensorflow/pose/tfjs-backend-webgl.js"></script>
+<script src="assets/js/tensorflow/pose/pose-detection.js"></script>
+<script src="assets/js/tensorflow/pose/pose.js"></script>
+<script src="assets/js/tensorflow/hands/hand-pose-detection.js"></script>
+<script src="assets/js/tensorflow/hands/hands.js"></script>
+<script>
+    let createDetector = async (d) => {
+        return d.ph ? window.poseDetection.createDetector(window.poseDetection.SupportedModels.BlazePose, { runtime: 'mediapipe', solutionPath: d.solutions }) : window.handPoseDetection.createDetector(window.handPoseDetection.SupportedModels.MediaPipeHands, { runtime: "mediapipe", modelType: "full", maxHands: d.hands, solutionPath: d.solutions });
+    },
+    createLayers = (d) => {
+        d.e = document.createElement("div");
+        d.o = window.outerWidth > window.outerHeight;
+        d.e.innerHTML =
+            `<span style="display:flex;justify-content:center;align-items:center;width:100vw;height:100vh">
+                <video id="${d.webcam}" playsinline style="position:absolute;width:100%;height:100%;object-fit:cover;transform:scaleX(${d.mobile ? "1" : "-1"});"></video>
+                <span id="show-frame" style="position:absolute; width: ${_hp.sFsize[_hp.touch ? "mobile" : "desktop"]}v${d.o ? "h" : "w"}; height: ${_hp.sFsize[_hp.touch ? "mobile" : "desktop"]}v${d.o ? "h" : "w"}; border-style: dashed; border-color: white; opacity: ${_hp.opacity}"></span>
+            </span>`;
+        return d.e.firstChild;
+    },
+    initCamera = async (d) => {
+        if (d.wCam.srcObject) d.wCam.srcObject.getVideoTracks()[0].stop();
+            d.wCam.srcObject = await navigator.mediaDevices.getUserMedia({ audio: !1, video: { facingMode: d.mobile ? "environment" : "user", frameRate: { max: d.fps } } });
+            for (let i = 0, j = ["width", "height"]; i < j.length; i++) d.wCam[j[i]] = d.wCam.srcObject.getVideoTracks()[0].getSettings()[j[i]];
+            return new Promise((resolve) => {
+                d.wCam.onloadedmetadata = () => {
+                    resolve(d.wCam);
+                };
+            });
+    },
+    updateLayers = async (d) => {
+        d.mobile = window.matchMedia("(any-hover: none)").matches;
+        initCamera({ wCam: d.wCam, mobile: d.mobile, fps: d.fps })
+            .then((stream) => {
+                if (stream) {
+                    stream.play();
+                    stream.addEventListener("loadeddata", () => {
+                        posesTracking(d);
+                    });
+                }
+            })
+            .catch(function (error) {
+                // Error!!!
+            });
+    },
+    _getTrackSettings = () => {
+        return{
+            canvas: "three-iframe-cont",
+            webcam: "pose-video",
+            width: window.outerWidth,
+            height: window.outerHeight,
+            fps: 30,
+            hands: 1,
+            mobile: window.matchMedia("(any-hover: none)").matches,
+            solutions: `${hostName}/assets/js/tensorflow/hands/solutions/`,
+        }
+    },
+    init = (d) => {
+        d = _getTrackSettings();
+        document.getElementById(d.canvas).appendChild(createLayers({ mobile: d.mobile, webcam: d.webcam, width: d.width, height: d.height }));
+        d.wCam = document.querySelector("#" + d.webcam);
+        updateLayers(d);
+    },
+    updateModule = (d) => {
+        if (_hp.tracker) {
+            d.e = document.getElementById(d.webcam);
+            _hp.tracker.horizontal = window.innerWidth > window.innerHeight;
+            _hp.tracker.scale = _hp.tracker.horizontal ? (d.e.getBoundingClientRect().width / d.e.width) : (d.e.getBoundingClientRect().height / d.e.height);
+            d.e.style.width = _hp.tracker.scale * d.e.width + "px";
+            d.e.style.height = _hp.tracker.scale * d.e.height + "px";
+            _hp.tracker.offset = {
+                width: parseInt(d.e.style.width) - window.innerWidth,
+                height: parseInt(d.e.style.height) - window.innerHeight
+            };
+            _hp.tracker.offset.width = _hp.tracker.offset.width < 0 ? -_hp.tracker.offset.width : _hp.tracker.offset.width;
+            _hp.tracker.offset.height = _hp.tracker.offset.height < 0 ? -_hp.tracker.offset.height : _hp.tracker.offset.height;
+        };
+        wristPlacemet({});
+    },
+    misAligned = (d) => {
+        d.e = document.getElementById("wrist-placement");
+        if (d.e) d.e = d.e.getElementsByTagName("span")[0];
+        if (d.e) {
+            d.e.style.display = "flex";
+            d.e = d.e.getElementsByTagName("span")[0];
+            if (d.e) d.e.innerHTML = d.reAlign ? `Align wrist within outline.` : d.twisted ? `Wrist top <strong class="blink" style="color: yellow">towards camera</strong>` : `Too ${d.isNear ? "close" : "far"}, please <strong class="blink" style="color: yellow">'Move ${d.isNear ? "Away" : "Closer"}'</strong>`;
+            if (d.reAlign) {
+                delete _hp.misAligned;
+            } else _hp.misAligned = !0;
+        };
+    },
+    wristPlacemet = (d) => {
+        d.e = document.getElementById("wrist-placement");
+        if (d.e) d.e.innerHTML = `
+            <div style="position: absolute; display: flex; justify-content: center; align-items: center; width: calc(100vw - 36px); height: calc(100vh - 42px); pointer-events: none; overflow: hidden">
+                <img style="position: absolute; ${(!_hp.touch ? `height: ${_hp.sFscale.desktop}%` : window.outerWidth > window.outerHeight ? `width: ${_hp.sFscale.mobile.landscape}%` : `height: ${_hp.sFscale.mobile.portrait}%`)}; opacity: .52" src="${hostName}/assets/images/wrist align ${(!_hp.touch ? "desktop" : window.outerWidth > window.outerHeight ? "landscape" : "portrait")} Left.webp"/>
+            </div>
+            <span style="padding: 12px 12px; position:absolute; top: 10vh; color: white; font-size: 21px; background: #444a; border-radius: 16px; box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;">
+                <img src="${hostName}/assets/images/wand.svg" style="margin-top: 4px; margin-right: 9px; height: 21px;"/>
+                <span></span>
+            </span>`;
+        setShowFrame({});
+    },
+    setShowFrame = (d) => {
+        d.e = document.getElementById("show-frame");
+        if (d.e) {
+            d.off = _hp.sFoffs[_hp.touch ? "mobile" : "desktop"][window.outerWidth > window.outerHeight ? "landscape" : "portrait"];
+            d.e.style.marginLeft = `${_hp.hand.match(/(Left)/) ? "" : "-"}${d.off.x}v${window.outerWidth > window.outerHeight ? "w" : "h"}`;
+            d.e.style.marginTop = `${d.off.y}v${window.outerWidth > window.outerHeight ? "w" : "h"}`;
+        };
+    },
+    _setTrackingDots = (d) => {
+        if (!_hp.tracker.markers[d.kp.name]) {
+            document.getElementById("indicators").innerHTML = `
+                <span id="` + d.kp.name + `" style="position: absolute; left: 40px, top: 50px; border-radius: 50%; pointer-events: none;">
+                    <img src="${hostName}/assets/textures/sprites/node.gif" style="height: ${_hp.mz * 2}; border-radius: 50%; opacity: ${_hp.opacity}; mix-blend-mode: screen;"/>
+                </span>
+            ` + document.getElementById("indicators").innerHTML;
+            _hp.tracker.markers[d.kp.name] = document.getElementById(d.kp.name);
+        } else d.e = _hp.tracker.markers[d.kp.name];
+        d.e = document.getElementById(d.kp.name);
+        if (d.e) {
+            d.e.style.display = "block";
+            d.e.style.left = (d.ph ? ((_hp.touch ? 0 : window.innerWidth) + (_hp.touch ? 1 : -1) * (d.kp.x * _hp.tracker.scale - _hp.tracker.offset.width / 2)) : ((!_hp.touch ? 0 : window.innerWidth) + (!_hp.touch ? 1 : -1) * (d.kp.x * _hp.tracker.scale - _hp.tracker.offset.width / 2))) - _hp.mz;
+            d.e.style.top = d.kp.y * _hp.tracker.scale - _hp.tracker.offset.height / 2 - _hp.mz;
+            d.positions[d.kp.name] = {
+                x: parseInt(d.e.style.left) + _hp.mz,
+                y: parseInt(d.e.style.top) + _hp.mz
+            };
+            if (d.kp.name.match(/(wrist)/)) {
+                d.off = _hp.sFoffs[_hp.touch ? "mobile" : "desktop"][window.outerWidth > window.outerHeight ? "landscape" : "portrait"];
+                d.ofX = (_hp.hand.match(/(Left)/) ? 1 : -1) * window[`inner${_hp.tracker.horizontal ? "Height" : "Width"}`] / (100 / d.off.x);
+                d.ofY = window[`inner${_hp.tracker.horizontal ? "Height" : "Width"}`] / (100 / d.off.y);
+                d.cFsize = window[`inner${_hp.tracker.horizontal ? "Height" : "Width"}`] / (100 / _hp.sFsize[_hp.touch ? "mobile" : "desktop"]) / 2;
+                if (d.positions[d.kp.name].x > window.innerWidth / 2 - d.cFsize + d.ofX && d.positions[d.kp.name].x < window.innerWidth / 2 + d.cFsize + d.ofX && d.positions[d.kp.name].y > window.innerHeight / 2 - d.cFsize + d.ofY && d.positions[d.kp.name].y < window.innerHeight / 2 + d.cFsize + d.ofY) d.allow = !0;
+            };
+        };
+    },
+    _hp = {
+        mz: 24,
+        opacity: 0.5, // 0 hides dots
+        sFscale: { // Show frame offset
+            mobile: { landscape: 110, portrait: 110 },
+            desktop: 96
+        },
+        sFsize: { mobile: 42, desktop: 21}, // Show frame size
+        sFoffs: { // Show frame offset
+            mobile: { landscape: { x: 15, y: -3 }, portrait: { x: 9, y: -14 } },
+            desktop: { landscape: { x: 25, y: 14 }, portrait: { x: 25, y: 14 } }
+        },
+        touch: window.matchMedia("(any-hover: none)").matches,
+        cFlip: !1, // Mirror canvas
+        hand: "Left",
+    };
+    window.estimatePoses = async (d) => {
+        delete d.allow;
+        if (!_hp.tracker) {
+            _hp.tracker = { markers: {} };
+            updateModule(d);
+        };
+        if (d.hDetector && d.pDetector) {
+            d.positions = {};
+            for (const hand of await d.hDetector.estimateHands(d.wCam, { enableSmoothing: !1, flipHorizontal: !0 })) {
+                d.hand3D = hand.keypoints3D;
+                _hp.hand = hand.handedness;
+                for (let i = 0, j = [0, 9, 17]; i < j.length; i++) {
+                    keypoint = hand.keypoints[j[i]];
+                    if (keypoint.name.match(/(wrist|middle_finger_mcp|pinky_finger_mcp)/))
+                        _setTrackingDots(Object.assign(d, { ph: !1, kp: keypoint }));
+                };
+            };
+            if (_hp.hand) {
+                for (const pose of await d.pDetector.estimatePoses(d.wCam, { enableSmoothing: !1, flipHorizontal: !1 })) {
+                    d.pose3D = pose.keypoints3D;
+                    for (let i = 0, j = [13, 14]; i < j.length; i++) {
+                        keypoint = pose.keypoints[j[i]];
+                        if (keypoint.name.match(_hp.hand.toLowerCase() + "_elbow"))
+                            _setTrackingDots(Object.assign(d, { ph: !0, kp: keypoint }));
+                    };
+                };
+                if (d.allow)
+                    iframe.contentWindow.postMessage({
+                        action: 'tracking',
+                        type: 'hand',
+                        coordinates: {
+                            hand: d.hand3D,
+                            pose: d.pose3D
+                        },
+                        positions: d.positions,
+                        hand: _hp.hand,
+                    }, iframe.src);
+            };
+        };
+        d.e = document.getElementById("wrist-placement");
+        d.i = d.e.getElementsByTagName("img")[0];
+        if (d.i && _hp.hand)
+            if (!d.i.src.includes(_hp.hand)) {
+                d.i.src = d.i.src.replace(_hp.hand.match(/(Left)/) ? "Right" : "Left", _hp.hand);
+                setShowFrame({});
+            }
+        if (!d.allow) {
+            misAligned({ reAlign: !0 });
+            if (d.i) d.i.style.opacity = .52;
+            if (d.positions && Object.keys(d.positions).length == 0) {
+                for (let key in _hp.tracker.markers) {
+                    d.e = document.getElementById(_hp.tracker.markers[key].id);
+                    if (d.e) d.e.style.display = "none";
+                };
+            };
+            iframe.contentWindow.postMessage({
+                action: 'tracking',
+                type: 'hand',
+                halt: !0,
+            }, iframe.src);
+        } else {
+            if (d.e && !_hp.misAligned) d.e.getElementsByTagName("span")[0].style.display = "none";
+            if (d.i) d.i.style.opacity = _hp.touch ? .07 : .21;
+        }
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                estimatePoses(d);
+            }, (_hp.touch ? 4200 : 2400) / d.fps);
+        });
+    };
+    window.posesTracking = async (d) => {
+        try {
+            if (d.hDetector) d.hDetector.dispose();
+            d.hDetector = await createDetector(Object.assign(d, { ph: !1 }));
+            if (d.pDetector) d.pDetector.dispose();
+            d.pDetector = await createDetector(Object.assign(d, { ph: !0 }));
+            estimatePoses(d);
+        } catch (error) {}
+    };
+    init({});
+</script> -->
+<!-- T H R E E V I E W -->
+<script>
+    document.getElementById("three-iframe-cont").appendChild(iframe);
+</script>
+<!-- W O R K   B U T T O N -->
+<style>
+    .holdBtn {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        border-style: dashed;
+        border-width: 2px;
+        border-color: white;
+        background: radial-gradient(#000c, #3e3f46aa); box-shadow: rgba(50, 50, 93, .25) 0px 2px 5px -1px, rgba(0, 0, 0, .3) 0px 1px 3px -1px;
+        box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+        transition: 0.18s;
+        user-select: none;
+        cursor: pointer;
+    }
+    .holdBtn:hover {
+        box-shadow: 0 25px 50px rgba(0, 0, 0, .15), inset 0 1px 0 rgba(255, 255, 255, .3);
+    }
+    .holdBtn img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        pointer-events: none;
+    }
+    .holdBtn:active {
+        transform: scale(0.98);
+    }
+    .holdBtn::before {
+        margin: -6px;
+        position: absolute;
+        content: "";
+        inset: 0;
+        border-radius: 50%;
+        z-index: -1;
+        transition: background 80ms linear;
+    }
+    .indictor-ring::before {
+        background: conic-gradient(#3ddc84 calc(var(--p, 0) * 360deg), rgba(255, 255, 255, 0.06) 0);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 0);
+        mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 0);
+    }
+    .indictor-pie::before {
+        background: conic-gradient(#3ddc84 calc(var(--p, 0) * 360deg), rgba(255, 255, 255, 0.06) 0);
+        filter: blur(6px);
+    }
+    .icon-hold {
+        transform-origin: 24px 24px;
+    }
+    .icon-check {
+        opacity: 0;
+    }
+    .icon-hold,
+    .icon-check {
+        transition: 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+    .holdBtn.holding .icon-hold {
+        animation: hold-pulse 0.9s ease-in-out infinite alternate;
+    }
+    @keyframes hold-pulse {
+        from {
+            transform: scale(1.02);
+        }
+        to {
+            transform: scale(.96);
+        }
+    }
+    .holdBtn.completed {
+        color: #fff;
+        pointer-events: none;
+        animation: work-completed 1.2s ease-in-out infinite alternate;
+    }
+    @keyframes work-completed {
+        from {
+            background: #0dac54;
+        }
+        to {
+            background: #1ab961;
+        }
+    }
+    .holdBtn.completed .icon-hold {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    .holdBtn.completed .icon-check {
+        opacity: 1;
+        transform: scale(1);
+    }
+</style>
+<script>
+    let hBFCanceled = (e) => {
+        if (!e.target.userData.done) {
+            e.target.userData.down = !1;
+            e.target.userData.start = null;
+            e.target.classList.remove("holding");
+            cancelAnimationFrame(e.target.userData.raf);
+            e.cur = +getComputedStyle(e.target).getPropertyValue("--p") || 0;
+            if (e.cur > 0) {
+                e.t0 = performance.now();
+                e.dur = 720;
+                (roll = (now) => {
+                    let q = Math.min(1, (now - e.t0) / e.dur);
+                    let eased = 1 - Math.pow(1 - q, 3);
+                    setHBF({ i: e.cur * (1 - eased), e: e.target });
+                    if (q < 1) requestAnimationFrame(roll);
+                })(e.t0);
+            }
+           e.target.releasePointerCapture?.(e.pointerId);
+        }
+    },
+    hBFStart = (e) => {
+        if (!(e.target.userData.done || (e.pointerType === "mouse" && e.button !== 0))) {
+            e.target.userData.down = true;
+            e.target.userData.start = null;
+            e.target.classList.add("holding");
+            e.target.setPointerCapture?.(e.pointerId);
+            e.target.userData.raf = requestAnimationFrame((ts) => {
+                hBFTick({ ts: ts, e: e })
+            });
+            new Audio(`assets/models/sounds/activity/${e.target.userData.tasks.sound.start}`).play();
+        }
+    },
+    hBFTick = (d) => {
+        if (d.e.target.userData.down) {
+            if (!d.e.target.userData.start)
+                d.e.target.userData.start = d.ts;
+            let p = (d.ts - d.e.target.userData.start) / d.e.target.userData.duration;
+            setHBF({ i: p, e: d.e.target });
+            if (p >= 1) return hBFinished({ e: d.e.target });
+            d.e.target.userData.raf = requestAnimationFrame((ts) => {
+                hBFTick({ ts: ts, e: d.e })
+            });
+        }
+    },
+    hBFinished = (d) => {
+        d.e.userData.done = !0;
+        d.e.userData.down = !1;
+        d.e.classList.remove("holding");
+        d.e.classList.add("completed");
+        setHBF({ i: 1, e: d.e });
+        cancelAnimationFrame(d.e.userData.raf);
+        d.e.animate([{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }], { duration: 400, easing: "cubic-bezier(.2,.9,.3,1)" });
+        d.e.dispatchEvent(new CustomEvent("holdcomplete"));
+        new Audio(`assets/models/sounds/activity/${d.e.userData.tasks.sound.finish}`).play();
+        if (localStorage.avatar) {
+            d.a = JSON.parse(localStorage.avatar);
+            if (d.a[prog]) {
+                if (!d.a[prog].activities)
+                    d.a[prog].activities = { now : performance.now() };
+                else d.a[prog].activities.now = performance.now();
+                localStorage.avatar = JSON.stringify(d.a);
+            }
+        }
+        window.parent.postMessage({
+            action: "player-activity",
+            message: d.e.userData.tasks.message
+        }, "*");
+    },
+    initWorkButtons = (d) => {
+        for (let i = 0, j = document.getElementsByClassName("holdBtn"); i < j.length; i++) {
+            j[i].addEventListener("pointerdown", hBFStart);
+            ["pointerup", "pointercancel", "pointerleave"].forEach((t) => j[i].addEventListener(t, hBFCanceled));
+            j[i].addEventListener("keydown", (e) => {
+                if (!d.e.target.userData.done && (e.code === "Space" || e.code === "Enter")) {
+                    e.preventDefault();
+                    hBFStart(e);
+                }
+            });
+            j[i].addEventListener("keyup", (e) => {
+                if (e.code === "Space" || e.code === "Enter") hBFCanceled(e);
+            });
+            j[i].userData = { duration: d.tasks.duration ? d.tasks.duration : 4096, tasks: d.tasks };
+            setHBF({ i: 0, e: j[i] });
+        }
+    },
+    setHBF = (d) => d.e.style.setProperty("--p", Math.max(0, Math.min(1, d.i)));
+</script>
+<!-- I D I C A T O R S -->
+<script>
+    const lineCvs = document.getElementById("lineCvs");
+    const linectx = lineCvs.getContext("2d");
+    function traceConnector(d, e) {
+        linectx.fillStyle = linectx.strokeStyle = "white";
+        linectx.beginPath();
+        linectx.arc(d.x, d.y, 3, 0, 2 * Math.PI);
+        linectx.fill();
+        linectx.beginPath();
+        linectx.arc(e.x, e.y, 3, 0, 2 * Math.PI);
+        linectx.fill();
+        linectx.beginPath();
+        linectx.moveTo(d.x, d.y);
+        linectx.lineTo(e.x, e.y);
+        linectx.stroke();
+    };
+    let indicatorButtons = {
+            elements: {},
+            playing: !0
+        },
+        codeString,
+        hideObject = [], bc;
+    let initButton = function() {
+        bc = {
+            play: document.getElementById("play-button"),
+            skip: document.getElementById("skip-button"),
+            touch: window.matchMedia("(any-hover: none)").matches,
+        };
+        if (bc.play && bc.skip) {
+            if (bc.play) bc.play.addEventListener("click", function () {
+                this.style.display = "none";
+                bc.skip.style.display = "block";
+                iframe.contentWindow.postMessage({ action: "play" }, iframe.src);
+                indicatorButtons.playing = !0;
+            });
+            if (bc.skip) bc.skip.addEventListener("click", function () {
+                this.style.display = "none";
+                iframe.contentWindow.postMessage({ action: "skip" }, iframe.src);
+                hideAllMarkers({ hide: { markers: !1, panels: !0 } });
+                indicatorButtons.playing = !1;
+            });
+        } else setTimeout(initButton, 600);
+    };
+    initButton();
+    window.onresize = (e) => {
+        bc.touch = window.matchMedia("(any-hover: none)").matches;
+    };
+    window.hideAllMarkers = function(d) {
+        if (indicatorButtons.visible) delete indicatorButtons.visible;
+        for (let key in indicatorButtons.elements) {
+            if (d.hide.markers) {
+                d.j = document.getElementById(indicatorButtons.elements[key]);
+                if (d.j) {
+                    d.j.style.display = "none";
+                    if (d.j.className.match(/(unlink)/)) {
+                        d.j = document.getElementById(key);
+                        if (d.j) d.j.style.display = "none";
+                    }
+                }
+            }
+            if (d.hide.panels) {
+                d.j = document.getElementById(key);
+                if (d.j) d.j.style.display = "none";
+            }
+        }
+    };
+    window.removeAllMarkers = function(d) {
+        while (document.getElementById("indicators").firstElementChild)
+            document.getElementById("indicators").removeChild(document.getElementById("indicators").firstElementChild);
+        indicatorButtons = {
+            elements: {},
+            playing: !0
+        };
+        hideObject = [];
+    };
+    window.addEventListener("message", (e) => {
+        if (!codeString && e.data.code)
+            window.parent.postMessage({
+                action: "session-code",
+                code: codeString = e.data.code
+            }, "*");
+        if (codeString == e.data.code) {
+            if (e.data.action && e.data.action.match(/(player-activity)/))
+                window.parent.postMessage({
+                    action: "player-activity",
+                    message: e.data.message
+                }, "*");
+            if (e.data.action && e.data.action.match(/(goto-page)/)) location.replace(e.data.page);
+            if (e.data.action && e.data.action.match(/(mis-aligned)/)) misAligned(e.data);
+            if (e.data.action && e.data.action.match(/(re-aligned)/)) misAligned({ reAlign: !0 });
+            if (e.data.action && e.data.action.match(/(resized)/)) updateModule(_getTrackSettings());
+            if (e.data.action && e.data.action.match(/(static-panes)/)) {
+                for (let i = 0, j = e.data.action.match(/(hide)/) ? ["hide"] : ["hide", "show"]; i < j.length; i++)
+                    for (let k = 0, l; k < e.data.panes[j[i]].length; k++) {
+                        l = document.getElementById(e.data.panes[j[i]][k]);
+                        if (l) l.style.display = j[i] == "show" ? "block" : "none";
+                    }
+            }
+            if (e.data.action == "show-play-button") {
+                if (bc.play) bc.play.style.display = "block";
+                if (bc.skip) bc.skip.style.display = "none";
+            };
+            if (e.data.action && e.data.action.match(/(remove-all-markers)/))
+                removeAllMarkers({});
+            if (e.data.action && e.data.action.match(/(hide-markers|hide-markers-panels)/)) {
+                hideAllMarkers({ hide: { markers: !0, panels: e.data.action.match(/(hide-markers-panels)/) ? !0 : !1 } });
+            };
+            if (e.data.action && e.data.action.match(/(model-changed|hide-all)/)) {
+                if (e.data.action.match(/(hide-all)/) && bc.play && bc.skip) bc.play.style.display = bc.skip.style.display = "none";
+                hideAllMarkers({ hide: { markers: !0, panels: !0 } });
+            };
+            if (e.data.action == "show-item") {
+                hideAllMarkers({ hide: { markers: !0, panels: !0 } });
+                lineCvs.style.display = "none";
+                iframe.contentWindow.postMessage({ action: "unglow" }, iframe.src);
+                e.showObject = JSON.parse(e.data.objects);
+                for (let i = 0; i < e.showObject.length; i++)
+                    setTimeout(() => {
+                        if (indicatorButtons.playing) {
+                            e.j = document.getElementById(e.showObject[i]);
+                            if (e.j) {
+                                e.j.style.display = "block";
+                                iframe.contentWindow.postMessage({ action: "glow" }, iframe.src);
+                            }
+                        }
+                    }, 1500);
+                hideObject = hideObject.concat(e.showObject);
+            };
+            if (e.data.action == "point-positions") {
+                indicatorButtons.visible = !0;
+                e.indicators = JSON.parse(e.data.objects);
+                lineCvs.setAttribute("width", window.innerWidth + "px");
+                lineCvs.setAttribute("height", window.innerHeight + "px");
+                e.j = {
+                    m: [],
+                    p: []
+                };
+                for (let i = 0, k; i < e.indicators.length; i++) {
+                    if (e.indicators[i].completed && e.indicators[i].clicked) {
+                        if (e.data.filter.some((txt) => e.indicators[i].name.includes(txt))) {
+                            k = e.indicators[i].name.replace("spr-", "").split("-")[0].split("_")[0];
+                            bc.mz = e.data.icons && e.data.icons[k] && e.data.icons[k].size ? e.data.icons[k].size : 36;
+                            if (!indicatorButtons.elements[k]) {
+                                indicatorButtons.elements[k] = e.indicators[i].name;
+                                document.getElementById("indicators").innerHTML = `
+                                    <div onClick="${e.data.message && e.data.message[k] ? `window.parent.postMessage({ action: 'player-activity', message:${JSON.stringify(e.data.message[k]).replace(/\"/g, "\'")}}, '*')` : `bc.p = document.getElementById('${k}');if(bc.p){lineCvs.style.display = bc.p.style.display = 'block';if(${(e.data.icons && e.data.icons[k] && e.data.icons[k].unlink ? !1 : !0)})showConnectors({ pane: document.getElementById('${k}'), marker: document.getElementById('${e.indicators[i].name}'), position: { x: this.getBoundingClientRect().left - lineCvs.getBoundingClientRect().left + this.getBoundingClientRect().width / 2, y: this.getBoundingClientRect().top - lineCvs.getBoundingClientRect().top + this.getBoundingClientRect().height / 2 } })};iframe.contentWindow.postMessage({ action: 'clicked', type: 'dot', name: '${k}', hasPane: document.getElementById('${k}') ? !0 : !1 }, iframe.src)`}" ${(e.data.icons && e.data.icons[k] && (e.data.icons[k].tooltip || e.data.icons[k].unlink) ? 'class="unlink"' : e.data.workButtons && e.data.workButtons[k] ? `class="holdBtn indictor-${(e.data.workButtons[k].pie ? "pie" : "ring")}"` : "") + (e.data.icons && e.data.icons[k] && e.data.icons[k].drag ? 'onmouseenter="dragIndicator({ e: this, id: \'' + k + '\' });" ontouchstart="dragIndicator({ e: this, id: \'' + k + '\' });"' : "")} style="position: absolute; display: none; left: 40px, top: 50px; border-radius: 50%; cursor: pointer; pointer-events: auto;"
+                                        id="${e.indicators[i].name}">
+                                        ${e.data.workButtons && e.data.workButtons[k] ? `
+                                            <img class="icon-check" src="assets/images/${(e.data.workButtons[k].completed ? e.data.workButtons[k].completed : "coins.webp")}"/>
+                                            <img class="icon-hold" src="assets/images/${(e.data.workButtons[k].default ? e.data.workButtons[k].default : "payment.webp")}"/>` :
+                                        `<img id="${e.indicators[i].name}-image" src="${hostName}/assets/textures/sprites/${(e.data.icons && e.data.icons[k] && e.data.icons[k].image ? e.data.icons[k].image : "node.gif")}"
+                                        onMouseUp="this.style.transform='scale(1.05)'"
+                                        onMouseDown="this.style.transform='scale(1.1)'"
+                                        onMouseOver="this.style.transform='scale(1.05)'"
+                                        onMouseMove="this.style.transform='scale(1.03)'"
+                                        onMouseOut="this.style.transform='scale(1.0)'"
+                                        style="height: ${bc.mz * 2}px; border-radius: 50%; opacity: ${(e.data.icons && e.data.icons[k] && e.data.icons[k].opacity ? e.data.icons[k].opacity : ".86")}; mix-blend-mode:screen"/>`}
+                                    </div>` +
+                                    document.getElementById("indicators").innerHTML;
+                                    if (e.data.workButtons && e.data.workButtons[k]) initWorkButtons({
+                                        tasks: e.data.workButtons[k].tasks
+                                    });
+                            };
+                            e.pane = document.getElementById(k);
+                            if (e.pane && e.data.icons && e.data.icons[k] && (e.data.icons[k].tooltip || e.data.icons[k].unlink)) e.pane.style.display = "block";
+                            e.marker = document.getElementById(e.indicators[i].name);
+                            if (e.marker) {
+                                e.position = e.indicators[i].position;
+                                e.marker.style.left = parseInt(e.position.x) - bc.mz + "px";
+                                e.marker.style.top = parseInt(e.position.y) - bc.mz + "px";
+                                if (
+                                    e.position.x > 0 &&
+                                    e.position.y > 0 &&
+                                    e.position.x < document.getElementById("indicators").clientWidth &&
+                                    e.position.y < document.getElementById("indicators").clientHeight &&
+                                    !e.j.p.some((txt) => e.indicators[i].name.includes(txt))
+                                ) {
+                                    if (!e.indicators[i].hidden && (e.indicators[i].inrange || !0) || e.data.single || (e.data.icons && e.data.icons[k] && e.data.icons[k].always)) {
+                                        if (e.data.single || (e.data.icons && e.data.icons[k] && e.data.icons[k].always)) lineCvs.style.display = "block";
+                                        if (!e.j.p.includes(k)) {
+                                            e.j.m.push(e.indicators[i].name);
+                                            e.j.p.push(k);
+                                            e.marker.style.display = "flex";
+                                        } else e.marker.style.display = "none";
+                                        if (e.marker.style.display != "none" && e.pane && e.pane.style.display != "none" && !(e.data.icons && e.data.icons[k] && e.data.icons[k].unlink)) showConnectors(e);
+                                    } else {
+                                        if (e.pane && e.pane.style.display != "none") e.pane.style.display = "none";
+                                        e.marker.style.display = "none";
+                                    }
+                                } else e.marker.style.display = "none";
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    });
+    window.showConnectors = function(e) {
+        try {
+            e.rect = e.pane.getElementsByTagName("div")[0].getElementsByTagName("h2")[0].getBoundingClientRect();
+        } catch (error) {
+            e.rect = e.pane.getElementsByTagName("div")[0].getElementsByTagName("div")[0].getElementsByTagName("span")[0].getBoundingClientRect();                                            
+        }
+        if (e.rect.left > 0 && e.rect.top > 0) traceConnector({ x: e.rect.left - lineCvs.getBoundingClientRect().left + e.rect.width / 2, y: e.rect.top - lineCvs.getBoundingClientRect().top + e.rect.height / 2 }, e.position);
+    };
+    window.dragIndicator = (d) => {
+        let draggingIndicator = (e) => {
+            e = e || window.event;
+            e.preventDefault();
+            d.x = (bc.touch ? e.touches[0].clientX : e.clientX);
+            d.y = (bc.touch ? e.touches[0].clientY : e.clientY);
+            document[bc.touch ? "ontouchend" : "onmouseup"] = draggingStop;
+            document[bc.touch ? "ontouchmove": "onmousemove"] = onDragging;
+        },
+        onDragging = (e) => {
+            e = e || window.event;
+            if (!bc.touch) e.preventDefault();
+            d.a = d.x - (bc.touch ? e.touches[0].clientX : e.clientX);
+            d.b = d.y - (bc.touch ? e.touches[0].clientY : e.clientY);
+            d.x = (bc.touch ? e.touches[0].clientX : e.clientX);
+            d.y = (bc.touch ? e.touches[0].clientY : e.clientY);
+            d.e.style.left = d.e.offsetLeft - d.a + "px";
+            d.e.style.top = d.e.offsetTop - d.b + "px";
+            iframe.contentWindow.postMessage({ action: 'dragging', type: 'dot', id: d.id, position: { x: d.x, y: d.y } }, iframe.src);
+        },
+        draggingStop = (e) => {
+            document[bc.touch ? "ontouchend" : "onmouseup"] = document[bc.touch ? "ontouchmove": "onmousemove"] = null;
+            if (!bc.touch) {
+                d.x = e.clientX;
+                d.y = e.clientY;
+            };
+            iframe.contentWindow.postMessage({ action: 'dropped', type: 'dot', id: d.id, position: { x: d.x, y: d.y } }, iframe.src);
+        };
+        d = Object.assign(d, { a: 0, b: 0, x: 0, y: 0 });
+        d.f = document.getElementById(d.e.id + "-image");
+        if (d.f) {
+            d.f[bc.touch ? "ontouchstart" : "onmousedown"] = draggingIndicator;
+        } else d.e[bc.touch ? "ontouchstart" : "onmousedown"] = draggingIndicator;
+    };
+</script>
+<!-- C O L O R   W H E E L -->
+<!-- <body></body>
+<style>
+    .slice {
+        cursor: pointer;
+        transition: filter .15s ease;
+        box-shadow: rgba(60, 64, 67, .3) 0px 1px 2px 0px, rgba(60, 64, 67, .15) 0px 2px 6px 2px;
+        -webkit-tap-highlight-color: #fff0
+    }
+    .slice > p {
+        font-size: 34px;
+        font-weight: 800;
+        -webkit-tap-highlight-color: #fff0
+    }
+    .slice > p:hover {
+        font-size: 36px;
+    }
+    .slice > p:active {
+        font-size: 34px;
+    }
+    .slice:hover {
+        filter: drop-shadow(0 0 6px rgba(0, 0, 0, .4));
+    }
+    .slice:active {
+        box-shadow: rgba(0, 0, 0, .05) 0px 0px 0px 1px, rgb(209, 213, 219) 0px 0px 0px 1px inset;
+    }
+    .color-button {
+        margin: 3px;
+        display: inline-block;
+        height: 36px;
+        width: 36px;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: rgba(0, 0, 0, 0.25) 0px 0.0625em 0.0625em, rgba(0, 0, 0, 0.25) 0px 0.125em 0.5em, rgba(255, 255, 255, 0.1) 0px 0px 0px 1px inset;
+        -webkit-tap-highlight-color: #fff0;
+        cursor: pointer;
+    }
+    .color-button:hover {
+        box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+    }
+    .color-button:active {
+        box-shadow: rgba(0, 0, 0, 0.05) 0px 0px 0px 1px, rgb(209, 213, 219) 0px 0px 0px 1px inset;
+    }
+</style>
+<div id="color-wheels"></div>
+<script>
+    let polar = (cx, cy, r, angDeg) => {
+        const a = toRad(angDeg);
+        return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    },
+    toRad = (deg) => ((deg - 90) * Math.PI) / 180,
+    ringSectorPath = (cx, cy, r0, r1, a0, a1) => {
+        const largeArc = (a1 - a0) % 360 > 180 ? 1 : 0;
+        const p0 = polar(cx, cy, r1, a0);
+        const p1 = polar(cx, cy, r1, a1);
+        const p2 = polar(cx, cy, r0, a1);
+        const p3 = polar(cx, cy, r0, a0);
+        return [`M ${p0.x} ${p0.y}`, `A ${r1} ${r1} 0 ${largeArc} 1 ${p1.x} ${p1.y}`, `L ${p2.x} ${p2.y}`, `A ${r0} ${r0} 0 ${largeArc} 0 ${p3.x} ${p3.y}`, "Z"].join(" ");
+    },
+    animateRadius = (el, cx, cy, r0, a0, a1, rFrom, rTo) => {
+        const start = performance.now();
+        const step = (now) => {
+            const t = Math.min(1, (now - start) / 240);
+            const e = 1 - Math.pow(1 - t, 3);
+            const r = rFrom + (rTo - rFrom) * e;
+            el.setAttribute("d", ringSectorPath(cx, cy, r0, r, a0, a1));
+            if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    },
+    colorWheel = (d) => {
+        d.e = document.createElement("div");
+        d.e.innerHTML = `
+            <div style="position: absolute; display: flex; justify-content: center; align-items: center; width: ${d.size}px; height: ${d.size}px; ${d.left ? `left: ${d.left}` : ""}; ${d.top ? `top: ${d.top}` : ""}; ${d.right ? `right: ${d.right}` : ""}; ${d.bottom ? `bottom: ${d.bottom}` : ""}; border-radius: 50%">
+                <svg id="${d.id}" viewBox="0 0 420 420" style="width: ${d.size}px; height: ${d.size}px; opacity: ${d.opacity ? d.opacity : .96}; overflow: hidden">
+                </svg>
+                <span class="slice" onclick="${d.fc}" style="position: absolute; display: flex; justify-content: center; align-items: center; width: ${d.inner * 2 - 12}px; height: ${d.inner * 2 - 12}px; background: white; border-radius: 50%; opacity: .42">
+                    <p>×</p>
+                </span>
+            </div>`;
+        document.getElementById("color-wheels").appendChild(d.e);
+        d.svg = document.getElementById(d.id);
+        d.outter = d.size / 2 - d.hover - 3;
+        d.cx = d.cy = d.size / 2;
+        d.svg.setAttribute("viewBox", `0 0 ${d.size} ${d.size}`);
+        d.angleStep = 360 / d.colors.length;
+        for (let i = 0, path, a0, a1; i < d.colors.length; i++) {
+            a0 = i * d.angleStep;
+            a1 = (i + 1) * d.angleStep;
+            path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.classList.add("slice");
+            path.classList.add(d.colors[i]);
+            path.dataset.a0 = a0;
+            path.dataset.a1 = a1;
+            path.dataset.r = d.outter;
+            path.setAttribute("fill", d.colors[i]);
+            path.setAttribute("d", ringSectorPath(d.cx, d.cy, d.inner, d.outter, a0, a1));
+            path.addEventListener("mousedown", (e) => {
+                animateRadius(path, d.cx, d.cy, d.inner, a0, a1, parseFloat(path.dataset.r), d.outter + d.hover / 2);
+                path.dataset.r = d.outter + d.hover - 2;
+            });
+            path.addEventListener("mouseup", (e) => {
+                animateRadius(path, d.cx, d.cy, d.inner, a0, a1, parseFloat(path.dataset.r), d.outter + d.hover);
+                path.dataset.r = d.outter + d.hover;
+            });
+            path.addEventListener("mouseenter", () => {
+                animateRadius(path, d.cx, d.cy, d.inner, a0, a1, parseFloat(path.dataset.r), d.outter + d.hover);
+                path.dataset.r = d.outter + d.hover;
+            });
+            path.addEventListener("mouseleave", () => {
+                animateRadius(path, d.cx, d.cy, d.inner, a0, a1, parseFloat(path.dataset.r), d.outter);
+                path.dataset.r = d.outter;
+            });
+            path.addEventListener("click", (e) => {
+                d.fs(e, i);
+            });
+            d.svg.appendChild(path);
+        };
+    },
+    createButton = (d) => {
+        for (let i in d.colors)
+            d.b += `<a class="color-button" onclick="showColorWheel({ i: '${i}' }); new Audio('assets/models/sounds/activity/bounceclick.ogg').play()" style="background: ${d.colors[i].hex[d.colors[i].index]}"></a>`
+        document.getElementById(d.id).innerHTML = `<div style="position: absolute; display: flex; justify-content: center; align-items: center; width: 100%; ${d.left ? `left: ${d.left}` : ""}; ${d.top ? `top: ${d.top}` : ""}; ${d.right ? `right: ${d.right}` : ""}; ${d.bottom ? `bottom: ${d.bottom}` : ""}; opacity: ${d.opacity ? d.opacity : .96}; overflow: hidden">${d.b}</div>`;
+    },
+    showColorWheel = (d) => {
+        document.getElementById("color-wheels").innerHTML = "";
+        colorWheel({
+            id: "wheel-1",
+            size: 160,
+            left: "calc(50% - 80px)",
+            bottom: 64,
+            opacity: .96,
+            colors: _uz.colors[d.i].hex,
+            inner: 36,
+            hover: 12,
+            fc: `document.getElementById('${"color-wheels"}').innerHTML = ''; new Audio('assets/models/sounds/activity/bounceclick.ogg').play()`,
+            fs: (e, i) => {
+                iframe.contentWindow.postMessage({
+                    action: "avatar-material",
+                    target: [d.i],
+                    mapName: "color",
+                    hex: _uz.colors[d.i].hex[_uz.colors[d.i].index = i].replace(/#/g, ""),
+                    index: i
+                });
+                new Audio('assets/models/sounds/activity/bounceclick.ogg').play();
+            }
+        })
+    },
+    _uz = {};
+    window.addEventListener("message", (e) => {
+        if (!codeString && e.data.code)
+            window.parent.postMessage({
+                action: "session-code",
+                code: codeString = e.data.code
+            }, "*");
+        if (codeString == e.data.code) {
+            if (e.data.action && e.data.action.match(/(color-button)/)) {
+                createButton({
+                    id: "color-wheels",
+                    bottom: 64,
+                    opacity: .86,
+                    b: [],
+                    colors: _uz.colors = e.data.colors
+                });
+            };
+        };
+    });
+</script> -->
+<!-- K E Y B O A R D   I N S T R U C T I O N -->
+<style>
+    #game-instructions {
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: rgba(10, 10, 12, 0.18);
+        backdrop-filter: blur(6px) saturate(120%);
+        -webkit-backdrop-filter: blur(6px) saturate(120%);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        color: #fff;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        font-size: 13px;
+        max-width: calc(100% - 60px);
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+        transition: transform 0.6s ease, opacity 0.6s ease;
+    }
+    #game-instructions.visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    #game-instructions .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    #game-instructions .title {
+        font-size: 14px;
+        color: #dfefff;
+        font-weight: 700;
+    }
+    #game-instructions .close-btn {
+        min-width: 28px;
+        height: 28px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+    }
+    #game-instructions .close-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    #game-instructions .ko-groups {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+    }
+    .ko-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+    .ko-group-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #dfefff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.9;
+    }
+    .ko-group-keys {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    kbd.key {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        min-width: 38px;
+        height: 38px;
+        border-radius: 6px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(240, 240, 240, 0.88));
+        color: #111;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 3px 6px rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        font-weight: 600;
+        font-size: 13px;
+        line-height: 1.1;
+        user-select: none;
+        padding: 3px 5px;
+        text-align: center;
+    }
+    kbd.key.space {
+        min-width: 90px;
+        border-radius: 8px;
+    }
+    kbd.key .small {
+        font-size: 11px;
+        opacity: 0.7;
+    }
+    kbd.key .below {
+        margin-bottom: -9px;
+        position: absolute;
+        font-size: 9px;
+    }
+</style>
+<div id="game-instructions"></div>
+<script>
+    let hideOverlay = () => {
+        if (!_uk.h) {
+            _uk.h = !0;
+            _uk.o.style.transition = `transform ${1536}ms ease, opacity ${1536}ms ease`;
+            _uk.o.style.transform = "translateY(10px) scale(0.98)";
+            _uk.o.style.opacity = "0";
+            setTimeout(() => {
+                _uk.o.innerHTML = "";
+                _uk.o.remove();
+            }, 1536);
+            if (_uk.t) clearTimeout(_uk.t);
+        }
+    },
+    _uk = { o: document.getElementById("game-instructions") };
+</script>
+<!-- U S E R   I N P U T -->
+<script type="module">
+    let _ui = { vehicle: {}, mobile: window.matchMedia("(any-hover: none)").matches };
+    // if ((!localStorage.avatar || !JSON.parse(localStorage.avatar)[prog]) && tag && !tag.includes("loc="))
+    //     location.replace(`avatar-select.html?${prog}`);
+    window.userInputs = (d) => {
+        iframe.contentWindow.postMessage({
+            action: "user-inputs",
+            inputs: d
+        }, iframe.src );
+    };
+    window.addEventListener("message", async (e) => {
+        if (!codeString && e.data.code)
+            window.parent.postMessage({
+                action: "session-code",
+                code: codeString = e.data.code
+            }, "*");
+        if (codeString == e.data.code) {
+            if (e.data.action) {
+                if (e.data.action.match(/(user-information)/))
+                    localStorage.user = JSON.stringify(Object.assign(localStorage.user ? JSON.parse(localStorage.user) : {}, e.data.user));
+                if (e.data.action.match(/(window-focus)/)) window.focus();
+                if (e.data.action.match(/(switch-control)/)) switchControls({});
+                if (e.data.action.match(/(user-vehicle)/)) _ui.vehicle.near = e.data.near;
+                if (e.data.action.match(/(user-buttons|show-viewer)/)) {
+                    for (let g = 0, h = ["icon", "cont"]; g < h.length; g++) {
+                        e.b = document.getElementsByClassName(`button-${h[g]}`);
+                        for (let i in e.b)
+                            if (e.b[i].classList) {
+                                if (h[g].match(/(cont)/)) {
+                                    e.c = e.b[i].getElementsByTagName("div")[0];
+                                    e.d = e.c.getElementsByTagName("img")[0];
+                                };
+                                if (e.data.action.match(/(user-buttons)/)) {
+                                    e.b[i].classList[e.data.hide ? "add" : "remove"]("slidedownup");
+                                    if (h[g].match(/(cont)/)) {
+                                        if (e.d && e.d.src.match(/(walk.webp|drive.webp)/)) {
+                                            e.b[i].style.display = "none";
+                                            setTimeout(() => {
+                                                e.b[i].style.display = _ui.vehicle.near ? "block" : "none";                                            
+                                            }, 360);
+                                        } else setTimeout(() => {
+                                            if (h[g].match(/(cont)/)) e.b[i].style.display = e.data.hide ? "none" : "block";
+                                        }, 360);
+                                    };
+                                } else if (h[g].match(/(cont)/) && e.d && !e.d.src.match(/(walk.webp|drive.webp)/))
+                                        e.b[i].style.display = "block";
+                            };
+                    };
+                    if (!_ui.mobile)
+                        setTimeout(() => {
+                            _uk.o.innerHTML = `
+                                <div class="header">
+                                    <div class="title">Controls</div>
+                                    <button class="close-btn" title="Close">&times;</button>
+                                </div>
+                                <div class="ko-groups">
+                                    <div class="ko-group">
+                                        <div class="ko-group-label">Move / Jump</div>
+                                        <div class="ko-group-keys">
+                                            <kbd class="key">
+                                                Q
+                                                <span class="small">←</span>
+                                            </kbd>
+                                            <kbd class="key">
+                                                W
+                                                <span class="small">↑</span>
+                                            </kbd>
+                                            <kbd class="key">
+                                                E
+                                                <span class="small">→</span>
+                                            </kbd>
+                                            <kbd class="key">
+                                                A
+                                                <span class="small">←</span>
+                                            </kbd>
+                                            <kbd class="key">
+                                                S
+                                                <span class="small">↓</span>
+                                            </kbd>
+                                            <kbd class="key">
+                                                D
+                                                <span class="small">→</span>
+                                            </kbd>
+                                            <kbd class="key space">
+                                                SPACE
+                                                <p class="small below">Jump/Brake</p>
+                                            </kbd>
+                                        </div>
+                                    </div>
+                                    <div class="ko-group">
+                                        <div class="ko-group-label">Actions</div>
+                                        <div class="ko-group-keys">
+                                            <kbd class="key">
+                                                ENTER
+                                                <p class="small below">Drive</p>
+                                            </kbd>
+                                            <kbd class="key">
+                                                ESC
+                                                <p class="small below">Walk</p>
+                                            </kbd>
+                                            <kbd class="key">
+                                                Z
+                                                <p class="small below">Wave</p>
+                                            </kbd>
+                                            <kbd class="key space">
+                                                L
+                                                <p class="small below">Location</p>
+                                            </kbd>
+                                        </div>
+                                    </div>
+                                    <div class="ko-group">
+                                        <div class="ko-group-label">Mouse Wheel</div>
+                                        <div class="ko-group-keys">
+                                            <kbd class="key">
+                                                ROLL
+                                                <p class="small below">Camera</p>
+                                            </kbd>
+                                            <kbd class="key space">
+                                                PRESS
+                                                <p class="small below">Navigation</p>
+                                            </kbd>
+                                        </div>
+                                    </div>
+                                    <div class="ko-group">
+                                        <div class="ko-group-label">Camera</div>
+                                        <div class="ko-group-keys">
+                                            <kbd class="key">
+                                                F
+                                                <p class="small below">Follow</p>
+                                            </kbd>
+                                            <kbd class="key">
+                                                O
+                                                <p class="small below">Orbit</p>
+                                            </kbd>
+                                            <kbd class="key">
+                                                [
+                                                <span class="small">↑</span>
+                                            </kbd>
+                                            <kbd class="key">
+                                                ]
+                                                <span class="small">↓</span>
+                                            </kbd>
+                                        </div>
+                                    </div>
+                                    <div class="ko-group">
+                                        <div class="ko-group-label">Character</div>
+                                        <div class="ko-group-keys">
+                                            <kbd class="key">
+                                                H
+                                                <p class="small below">Cloth</p>
+                                            </kbd>
+                                            <kbd class="key">
+                                                G
+                                                <p class="small below">Select</p>
+                                            </kbd>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            _uk.o.querySelector(".close-btn").addEventListener("click", hideOverlay);
+                            window.addEventListener("keydown", (e) => {
+                                if (e.key === "Escape") hideOverlay();
+                            });
+                            _uk.t = setTimeout(hideOverlay, 16384);
+                            requestAnimationFrame(() => _uk.o.classList.add("visible"))
+                        }, 2048);
+                };
+            };
+        };
+    });
+    if (window.matchMedia("(any-hover: none)").matches) {
+        const { DynamicJoystickController } = await import(`${hostName}/assets/js/inputs/joystick-controller.js`);
+        let joystick = {
+            walk: 0,
+            stir: 0,
+            yaw: 0,
+            elev: 0,
+            isJoyStick: !0
+        },
+        offsetInput = (d) => {
+            return d.v >= d.r || d.v <= -d.r ? ((d.v + d.r * (d.v > 0 ? -1 : 1)) / (100 - d.r) * 100) : 0;
+        },
+        setDomElements = (d) => {
+            iframe.contentWindow.postMessage({
+                action: "dom-elements",
+                [d.isOrbit ? "show" : "hide"]: [
+                    "three-view-buttons",
+                    "magnify-lens-cont"
+                ]
+            }, iframe.src);
+        },
+        scrSize = Math.min(window.screen.width / window.devicePixelRatio, window.screen.height / window.devicePixelRatio);
+        window.switchToDriving = (d) => {
+            d.e = document.getElementsByClassName("button-action");
+            for (let k in d.e) {
+                for (let i = 0, j = [RegExp(/(walk|drive)/), RegExp(/(wave|honk)/)]; i < j.length; i++) {
+                    delete d.im;
+                    if (!d.im && d.e[k].style && d.e[k].style.maskImage.match(j[i]))
+                        d.im = d.e[k].style.maskImage.match(/(walk|drive)/) ? (d.e[k].style.maskImage.match(/(walk)/) ? { a: "drive", b: "walk" } : { a: "walk", b: "drive" }) : d.e[k].style.maskImage.match(/(wave|honk)/) ? (d.e[k].style.maskImage.match(/(wave)/) ? { a: "honk", b: "wave" } : { a: "wave", b: "honk" }) : { a: "", b: "" };
+                    if (d.im && d.e[k].src && d.e[k].src.match(j[i]))
+                        d.e[k].src = d.e[k].src.replace(d.im.b, d.im.a);
+                    if (d.im && d.e[k].style && d.e[k].style.maskImage && d.e[k].style.maskImage.match(j[i]))
+                        d.e[k].style.maskImage = d.e[k].style.maskImage.replace(d.im.b, d.im.a);
+                    if (d.im && d.im.b.match(/(walk|drive)/)) d.isDrive = d.im.b;
+                };
+            };
+            document.querySelector(".avatar-settings").style.display = d.im && d.im.b.match(/(walk)/) ? "block" : "none";
+            if (d.isDrive)
+                iframe.contentWindow.postMessage({ action: `action-${d.isDrive}` }, iframe.src);
+        };
+        window.fullScreen = (d) => {
+            if (_ui.fc = !_ui.fc) {
+                if (document.body.requestFullscreen) document.body.requestFullscreen();
+                else if (document.body.msRequestFullscreen) document.body.msRequestFullscreen();
+                else if (document.body.mozRequestFullScreen) document.body.mozRequestFullScreen();
+                else if (document.body.webkitRequestFullscreen) document.body.webkitRequestFullscreen();
+            } else if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
+                else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        };
+        window.switchControls = (d) => {
+            if (document.querySelector(".dynamicjoystickcont").style.display != "none") {
+                joystick.isOrbit = !0;
+            } else delete joystick.isOrbit;
+            for (let g = 0, h = ["cont", "icon"]; g < h.length; g++) {
+                d.e = document.querySelector(`.button-${h[g]}`);
+                if (h[g].match(/(icon)/)) {
+                    d.f = d.e.getElementsByTagName("img")[0];
+                    document.querySelector(".dynamicjoystickcont").style.display = joystick.isOrbit ? "none" : "flex";
+                    setTimeout(() => {
+                        d.e.style.mask = `url("${hostName}/assets/images/switch ${joystick.isOrbit ? "joystick" : "orbit"}.webp") center/contain`;
+                        d.f.src = `${hostName}/assets/images/switch ${joystick.isOrbit ? "joystick" : "orbit"}.webp`;
+                        setDomElements({ isOrbit: joystick.isOrbit });
+                    }, 512);
+                };
+                for (let i = 0, j = h[g].match(/(icon)/) ? ["e", "f"] : ["e"]; i < j.length; i++) {
+                    d[j[i]].classList.add("slidedownup");
+                    setTimeout(() => {
+                        d[j[i]].classList.remove("slidedownup");
+                    }, 1024);
+                };
+            };
+            document.querySelector(".switch-camera").style.display = joystick.isOrbit ? "none" : "flex";
+            new Audio('assets/models/sounds/activity/pickedcoinecho.ogg').play();
+        };
+        document.getElementById("dynamic-joystick").innerHTML = `
+            <div class="dynamicjoystickcont">
+                <div id="dynamicjoystick-left"></div>
+                <div id="dynamicjoystick-right"></div>
+            </div>
+            <div class="button-cont" onclick="switchControls({})" style="display: none; left: 50%; bottom: 72px; transform: translateX(-50%)">
+                <div class="button-icon" style="mask: url('${hostName}/assets/images/switch orbit.webp') center/contain">
+                    <img src="${hostName}/assets/images/switch orbit.webp"/>
+                </div>
+            </div>
+            <div class="button-cont" onclick="iframe.contentWindow.postMessage({ action: 'action-wave-hand' }, iframe.src); new Audio('assets/models/sounds/activity/bounceclick.ogg').play()" style="display: none; right: 86px; bottom: 86px">
+                <div class="button-icon button-action" style="mask: url('${hostName}/assets/images/action wave.webp') center/contain">
+                    <img class="button-action" src="${hostName}/assets/images/action wave.webp"/>
+                </div>
+            </div>
+            <div class="button-cont" onclick="switchToDriving({}); new Audio('assets/models/sounds/activity/bounceclick.ogg').play()" style="display: none; left: 21px; bottom: 21px">
+                <div class="button-icon button-action" style="mask: url('${hostName}/assets/images/switch drive.webp') center/contain">
+                    <img class="button-action" src="${hostName}/assets/images/switch drive.webp"/>
+                </div>
+            </div>
+            <div class="button-cont avatar-settings" onclick="new Audio('assets/models/sounds/activity/sinebeep.ogg').play(); setTimeout(()=> location.replace('avatar-studio.html'), 720)" style="display: none; right: 86px; bottom: 21px">
+                <div class="button-icon button-action" style="mask: url('${hostName}/assets/images/character settings.webp') center/contain">
+                    <img class="button-action" src="${hostName}/assets/images/character settings.webp"/>
+                </div>
+            </div>
+            <div class="button-cont avatar-location" onclick="iframe.contentWindow.postMessage({ action: 'avatar-location' }, iframe.src); new Audio('assets/models/sounds/activity/bounceclick.ogg').play()" style="display: none; left: 86px; bottom: 21px">
+                <div class="button-icon button-action" style="mask: url('${hostName}/assets/images/pin map.webp') center/contain">
+                    <img class="button-action" src="${hostName}/assets/images/pin map.webp"/>
+                </div>
+            </div>
+            ${window.matchMedia("(any-hover: none)").matches ? `<div class="button-cont switch-camera" onclick="iframe.contentWindow.postMessage({ action: 'switch-camera' }, iframe.src); new Audio('assets/models/sounds/activity/bounceclick.ogg').play()" style="display: none; right: 21px; bottom: 86px">
+                <div class="button-icon button-action" style="mask: url('${hostName}/assets/images/switch camera.webp') center/contain">
+                    <img class="button-action" src="${hostName}/assets/images/switch camera.webp"/>
+                </div>
+            </div>` : ""}`;
+        new DynamicJoystickController({
+                opacity: 1,
+                maxRange: 100,
+                radius: (scrSize > 430 ? 430 : scrSize) * .39,
+                joystickRadius: (scrSize > 430 ? 430 : scrSize) * .15,
+                joystickClass: "joystick",
+                distortion: !1,
+                dynamicPosition: !0,
+                dynamicPositionTarget: document.querySelector("#dynamicjoystick-left"),
+                mouseClickButton: "ALL",
+                hideContextMenu: !0,
+                pageScale: 1,
+            }, (val) => userInputs(joystick = Object.assign(joystick, { stir: offsetInput({ v: val.x, r: 21 }), walk: offsetInput({ v: val.y, r: 21 }), jump: val.jump, longPress: val.longPress })));
+        new DynamicJoystickController({
+                opacity: 1,
+                maxRange: 100,
+                radius: (scrSize > 430 ? 430 : scrSize) * .27,
+                joystickRadius: (scrSize > 430 ? 430 : scrSize) * .11,
+                joystickClass: "joystick",
+                distortion: !0,
+                dynamicPosition: !0,
+                dynamicPositionTarget: document.querySelector("#dynamicjoystick-right"),
+                mouseClickButton: "ALL",
+                hideContextMenu: !1,
+                pageScale: 1,
+            }, (val) => userInputs(joystick = Object.assign(joystick, { yaw: offsetInput({ v: val.x, r: 21 }), elev: offsetInput({ v: val.y, r: 21 }), jump: val.jump, longPress: val.longPress })));
+    } else {
+        const { keyboard } = await import(`${hostName}/assets/js/inputs/keyboard.js`);
+        let keyInput = new keyboard();
+        keyInput.start();
+        // window.addEventListener("blur", ()=> setTimeout(()=> window.focus(), 720));
+    };
+    document.getElementById("crt-screen").innerHTML = `
+        <div class="crt-screen-static-on">
+            <div class="crt-screen-scanline"></div>
+            <div class="crt-screen-vline"></div>
+            <div class="crt-tracking"></div>
+        </div>
+        <div class="crt-scan-area"></div>
+        <div class="crt-vignette"></div>
+        <div style="display: flex">
+            <div class="button-cont construct" onclick="iframe.contentWindow.postMessage({ action: 'file-dnd' }, iframe.src); ${_ui.mobile ? "if (document.querySelector('.dynamicjoystickcont').style.display != 'none') switchControls({}); " : ""}new Audio('assets/models/sounds/activity/bounceclick.ogg').play()" style="display: none; ${_ui.mobile ? "right: 21px; bottom: 21px" : "right: 36px; bottom: 36px"} ">
+                <div class="button-icon button-action" style="mask: url('${hostName}/assets/images/construct.webp') center/contain">
+                    <img class="button-action" src="${hostName}/assets/images/construct.webp"/>
+                </div>
+            </div>
+        </div>`;
+</script>
+<script>
+    window.addEventListener("message", (e) => {
+        if (e.data.action && e.data.action.match(/(issue-credit|spend-credit|issue-ready)/)) {
+            if (e.origin != location.origin)
+                iframe.contentWindow.postMessage(e.data, iframe.src);
+            else window.parent.postMessage(e.data, "*");
+        }
+    });
+</script>
